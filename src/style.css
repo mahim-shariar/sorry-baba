@@ -1,0 +1,16 @@
+h1, p {
+  font-family: Lato;
+}
+
+@keyframes floatHearts {
+  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(-100px) rotate(360deg); opacity: 0; }
+}
+
+.heart {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  font-size: 30px;
+  animation: floatHearts 5s ease-in-out infinite;
+}
