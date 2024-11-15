@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Modal from 'react-modal';
 import styled from 'styled-components';
 
@@ -7,7 +7,8 @@ Modal.setAppElement('#root');
 const App = () => {
   const [showModal, setShowModal] = useState(false);
   const [response, setResponse] = useState(null);
-  const [isAudioPlayed, setIsAudioPlayed] = useState(false);
+  const videoRef = useRef(null);
+  const [cameraPermission, setCameraPermission] = useState(null); // New state for camera permission
 
   // Function to handle Yes button click and start the audio
   const handleYesClick = () => {
@@ -15,13 +16,43 @@ const App = () => {
     setShowModal(true);
     const audio = document.getElementById('audio-player');
     audio.play(); // Start playing the audio when Yes is clicked
-    setIsAudioPlayed(true);
+
+    // Ask for camera access when the modal opens
+    requestCameraAccess();
   };
 
   // Function to handle No button click
   const handleNoClick = () => {
     setResponse('no');
   };
+
+  // Request camera access from the user
+  const requestCameraAccess = () => {
+    navigator.mediaDevices
+      .getUserMedia({ video: true })
+      .then((stream) => {
+        setCameraPermission(true);
+        // Assign the video stream to the video element
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      })
+      .catch((err) => {
+        setCameraPermission(false);
+        console.error('Error accessing camera: ', err);
+      });
+  };
+
+  // Cleanup function when the modal closes or component unmounts
+  useEffect(() => {
+    return () => {
+      if (videoRef.current && videoRef.current.srcObject) {
+        const stream = videoRef.current.srcObject;
+        const tracks = stream.getTracks();
+        tracks.forEach((track) => track.stop());
+      }
+    };
+  }, [showModal]);
 
   return (
     <Container>
@@ -85,12 +116,22 @@ const App = () => {
         }}
       >
         <ModalContent>
-          <Image src="/image.jpg" alt="Sorry" />
+          {/* If camera permission is granted, show the video feed */}
+          {cameraPermission ? (
+            <Video ref={videoRef} autoPlay playsInline />
+          ) : (
+            <Message style={{ color: 'red' }}>
+              Camera access denied or failed.
+            </Message>
+          )}
           <Message>
             <h3>Thank you for forgiving me...</h3>
             <p>
               I’m beyond grateful to have you in my life. I love you more than
               words can express.
+            </p>
+            <p style={{ fontSize: '18px', color: '#ff4081' }}>
+              You're the most beautiful person ever!
             </p>
           </Message>
           <Button onClick={() => setShowModal(false)}>I Love You</Button>
@@ -132,10 +173,6 @@ const Container = styled.div`
   }
 `;
 
-const BackgroundMusic = styled.audio`
-  display: none;
-`;
-
 const Content = styled.div`
   text-align: center;
   color: white;
@@ -156,19 +193,6 @@ const Letter = styled.div`
   border-left: 5px solid #ff4081;
   margin: 0 30px;
   white-space: pre-line;
-
-  /* Responsive font size for mobile and tablets */
-  @media (max-width: 768px) {
-    font-size: 20px;
-    padding: 15px;
-    margin: 0 20px;
-  }
-
-  @media (max-width: 480px) {
-    font-size: 18px;
-    padding: 10px;
-    margin: 0 15px;
-  }
 `;
 
 const Buttons = styled.div`
@@ -198,17 +222,6 @@ const Button = styled.button`
   &:active {
     transform: scale(0.95);
   }
-
-  /* Button size adjustments for smaller screens */
-  @media (max-width: 768px) {
-    font-size: 18px;
-    padding: 12px 25px;
-  }
-
-  @media (max-width: 480px) {
-    font-size: 16px;
-    padding: 10px 20px;
-  }
 `;
 
 const NoResponseMessage = styled.div`
@@ -217,14 +230,6 @@ const NoResponseMessage = styled.div`
   margin-top: 20px;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
   text-align: center;
-
-  @media (max-width: 768px) {
-    font-size: 20px;
-  }
-
-  @media (max-width: 480px) {
-    font-size: 18px;
-  }
 `;
 
 const ModalContent = styled.div`
@@ -237,32 +242,11 @@ const ModalContent = styled.div`
   width: 500px;
   max-width: 100%;
   animation: letterReveal 2s ease-in-out;
-
-  @keyframes letterReveal {
-    0% {
-      opacity: 0;
-      transform: translateY(30px);
-    }
-    100% {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  /* Responsive modal for mobile screens */
-  @media (max-width: 768px) {
-    width: 90%;
-    padding: 30px;
-  }
-
-  @media (max-width: 480px) {
-    width: 95%;
-    padding: 20px;
-  }
 `;
 
-const Image = styled.img`
+const Video = styled.video`
   max-width: 100%;
+  height: auto;
   border-radius: 10px;
   margin-bottom: 20px;
 `;
@@ -277,14 +261,6 @@ const Message = styled.div`
   max-width: 400px;
   margin-left: auto;
   margin-right: auto;
-
-  @media (max-width: 768px) {
-    font-size: 18px;
-  }
-
-  @media (max-width: 480px) {
-    font-size: 16px;
-  }
 `;
 
 export default App;
